@@ -91,7 +91,27 @@ function MySlot:Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|CFFFF0000<|r|CFFFFD100Myslot|r|CFFFF0000>|r"..(msg or "nil"))
 end
 
--- {{{ GetMacroInfo
+-- {{{ GetMacroInfo newer ver.
+function MySlot:GetMacroInfo(macroId)
+    -- {macroId ,icon high 8, icon low 8 , namelen, ..., bodylen, ...}
+
+    local name, _, _, _ = GetMacroInfo(macroId)
+
+    if not name then
+        return nil
+    end
+
+    local msg = _MySlot.Macro()
+    msg.id = macroId
+    msg.name = name
+    msg.icon = ""
+    msg.body = ""
+
+    return msg
+end
+-- }}}
+
+--[[ {{{ GetMacroInfo
 function MySlot:GetMacroInfo(macroId)
     -- {macroId ,icon high 8, icon low 8 , namelen, ..., bodylen, ...}
 
@@ -111,7 +131,7 @@ function MySlot:GetMacroInfo(macroId)
 
     return msg
 end
--- }}}
+-- }}} ]]
 
 -- {{{ GetActionInfo
 function MySlot:GetActionInfo(slotId)
@@ -358,6 +378,54 @@ local function UnifyCRLF(text)
     return strtrim(text)
 end
 
+function MySlot:FindMacro(macroInfo)	-- Find macro by name only
+    if not macroInfo then
+        return
+    end
+    -- cache local macro index
+    -- {{{ 
+		-- [[ Account macro and character macro may have same name ]]
+	local localGeneral = {}
+	local localCharacter = {}
+    for i = 1, MAX_ACCOUNT_MACROS do
+        local name, _, body = GetMacroInfo(i)
+        if name then
+            body = UnifyCRLF(body)
+            localGeneral[name] = i
+        end
+    end
+    for i = MAX_ACCOUNT_MACROS + 1, MAX_ACCOUNT_MACROS + MAX_CHARACTER_MACROS do
+        local name, _, body = GetMacroInfo(i)
+        if name then
+            body = UnifyCRLF(body)
+            localCharacter[name] = i
+        end
+    end
+    -- }}} 
+
+    local id = macroInfo["oldid"]
+    local name = macroInfo["name"]
+--    local icon = macroInfo["icon"]
+--    local body = macroInfo["body"]
+--    body = UnifyCRLF(body)
+
+--    local localIndex = localMacro[ name .. "_" .. body] or localMacro[ body ]
+
+    local localIndex
+	if id < MAX_ACCOUNT_MACROS + 1 then
+		localIndex = localGeneral[name] or nil
+	else
+		localIndex = localCharacter[name] or nil
+	end
+
+    if localIndex then
+        return localIndex
+    else
+        self:Print("Macro ["..name.."] not found")
+        return nil
+    end
+end
+
 -- {{{ FindOrCreateMacro
 function MySlot:FindOrCreateMacro(macroInfo)
     if not macroInfo then
@@ -505,8 +573,8 @@ function MySlot:RecoverData(msg, opt)
                 ["icon"] = icon,
                 ["body"] = body,
             }
-
-            self:FindOrCreateMacro(macro[macroId])
+            --self:FindOrCreateMacro(macro[macroId])
+            self:FindMacro(macro[macroId])
         end
     end
 
@@ -556,7 +624,8 @@ function MySlot:RecoverData(msg, opt)
                     elseif slotType == MYSLOT_ITEM then
                         PickupItem(index)
                     elseif slotType == MYSLOT_MACRO then
-                        local macroid = self:FindOrCreateMacro(macro[index])
+                        --local macroid = self:FindOrCreateMacro(macro[index])
+                        local macroid = self:FindMacro(macro[index])
 
                         if curType ~= MYSLOT_MACRO or curIndex ~=index then
                             PickupMacro(macroid)
