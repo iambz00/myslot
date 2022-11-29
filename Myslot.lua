@@ -618,7 +618,7 @@ function MySlot:RecoverData(msg, opt)
                                     PickupCompanion(spellType , newId)
                                 end
                             else
-                                MySlot:Print(L["Ignore unlearned skill [id=%s], %s"]:format(index, GetSpellLink(index)))    
+                                MySlot:Print(L["Ignore unlearned skill [id=%s], %s"]:format(index, GetSpellLink(index) or ""))    
                             end
                         end
                     elseif slotType == MYSLOT_ITEM then
@@ -653,7 +653,10 @@ function MySlot:RecoverData(msg, opt)
                     elseif slotType == MYSLOT_EQUIPMENTSET then
                         C_EquipmentSet.PickupEquipmentSet(index)
                     end
-                    PlaceAction(slotId) 
+
+                    if GetCursorInfo() then
+                        PlaceAction(slotId)
+                    end
                     ClearCursor()
                 end
             end) then
